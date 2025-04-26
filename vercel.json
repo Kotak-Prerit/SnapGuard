@@ -1,14 +1,14 @@
 {
   "version": 2,
-  "buildCommand": "cd client/snapgaurd && npm run build",
-  "outputDirectory": "client/snapgaurd/dist",
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "client/dist",
   "builds": [
     {
       "src": "server/src/index.js",
       "use": "@vercel/node"
     },
     {
-      "src": "client/snapgaurd/package.json",
+      "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": { "distDir": "dist" }
     }
@@ -20,7 +20,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "client/snapgaurd/dist/$1"
+      "dest": "client/dist/$1"
     }
   ],
   "env": {

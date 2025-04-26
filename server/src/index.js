@@ -1,11 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const { createClient } = require('@supabase/supabase-js');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const errorHandler = require('./middleware/errorHandler');
+const { getSupabase } = require('./lib/supabase');
 const path = require('path');
+const chatRoutes = require('./routes/chat');
 
 // Load environment variables
 require('dotenv').config({
@@ -15,25 +16,12 @@ require('dotenv').config({
 // Initialize Express app
 const app = express();
 
-// Initialize Supabase client
+// Initialize Supabase
 let supabase = null;
 try {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    console.warn('⚠️ WARNING: Supabase credentials missing. Check your .env file.');
-    console.warn('Required environment variables:');
-    console.warn('- SUPABASE_URL');
-    console.warn('- SUPABASE_ANON_KEY');
-    console.warn('- JWT_SECRET');
-    console.warn('Running in fallback mode with in-memory storage.');
-  } else {
-    supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('✅ Supabase client initialized successfully');
-  }
+  supabase = getSupabase();
 } catch (error) {
-  console.warn('⚠️ Failed to initialize Supabase client:', error.message);
+  console.error('Failed to initialize Supabase:', error.message);
 }
 
 // Configure morgan logging format
@@ -49,19 +37,13 @@ app.use(morgan(morganFormat, {
   skip: (req) => req.url === '/health' // Skip logging health checks
 }));
 
-// Attach Supabase client to request object
-app.use((req, res, next) => {
-  req.supabase = supabase;
-  next();
-});
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    supabase: supabase ? 'connected' : 'fallback',
+    supabase: supabase ? 'connected' : 'not connected',
     envVars: {
       hasSupabaseUrl: !!process.env.SUPABASE_URL,
       hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
@@ -73,6 +55,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
@@ -87,7 +70,7 @@ ${divider}
 ${divider}
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
 🔌 Port: ${PORT}
-🔐 Auth: ${supabase ? 'Supabase' : 'In-memory fallback'}
+🔐 Auth: ${supabase ? 'Supabase' : 'Not connected'}
 🔑 JWT Secret: ${process.env.JWT_SECRET ? '✓ Set' : '✗ Missing'}
 📡 Supabase URL: ${process.env.SUPABASE_URL ? '✓ Set' : '✗ Missing'}
 🔑 Supabase Key: ${process.env.SUPABASE_ANON_KEY ? '✓ Set' : '✗ Missing'}
