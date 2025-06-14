@@ -14,6 +14,7 @@ import Layout from "./components/Layout";
 import { MediaPermissionsProvider } from "./contexts/MediaPermissionsContext";
 import MediaPermissionsDialog from "./components/MediaPermissionsDialog";
 import { useMediaPermissionsContext } from "./contexts/MediaPermissionsContext";
+// import { EnvDebugger } from "./components/EnvDebugger";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,9 @@ const AppContent = () => {
 
   return (
     <>
+      {/* Temporary debug component - remove after fixing */}
+      {/* <EnvDebugger /> */}
+
       <BrowserRouter>
         <Layout>
           <AnimatePresence mode="wait">
