@@ -1,7 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm run build",
-  "outputDirectory": "client/dist",
+  "functions": {
+    "server/src/index.js": {
+      "maxDuration": 30
+    }
+  },
   "builds": [
     {
       "src": "server/src/index.js",
@@ -10,7 +13,10 @@
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "npm run build"
+      }
     }
   ],
   "routes": [
@@ -26,4 +32,4 @@
   "env": {
     "NODE_ENV": "production"
   }
-} 
+}
