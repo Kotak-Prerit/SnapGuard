@@ -41,12 +41,13 @@ router.post('/register', async (req, res) => {
       const supabase = getSupabase();
       console.log('Attempting to create user in Supabase...');
       
+      // Create user without email verification
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password: password,
+        password,
         options: {
           data: { name },
-          emailRedirectTo: `${process.env.CLIENT_URL || 'http://localhost:8080'}/auth/callback`
+          emailRedirectTo: null // Disable email verification
         },
       });
 
@@ -124,8 +125,7 @@ router.post('/register', async (req, res) => {
           id: authData.user.id,
           email,
           name,
-        },
-        message: 'Please check your email for verification instructions'
+        }
       });
     } catch (error) {
       console.error('Detailed registration error:', {
@@ -168,13 +168,16 @@ router.post('/login', async (req, res) => {
     try {
       const supabase = getSupabase();
       
-      // Log Supabase URL (redacting sensitive parts)
-      const supabaseUrl = process.env.SUPABASE_URL;
-      console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
-      console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+      // Log Supabase configuration
+      console.log('Supabase Configuration:', {
+        url: process.env.SUPABASE_URL ? 'Set' : 'Missing',
+        key: process.env.SUPABASE_ANON_KEY ? 'Set' : 'Missing',
+        client: supabase ? 'Initialized' : 'Not Initialized'
+      });
 
       console.log('Attempting to sign in user with Supabase...');
       
+      // Attempt to sign in
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -183,10 +186,12 @@ router.post('/login', async (req, res) => {
       console.log('Supabase auth response:', {
         hasData: !!data,
         hasUser: !!data?.user,
+        hasSession: !!data?.session,
         error: error ? {
           message: error.message,
           status: error.status,
-          code: error.code
+          code: error.code,
+          details: error.details
         } : null
       });
 
@@ -194,17 +199,9 @@ router.post('/login', async (req, res) => {
         console.error('Supabase login error:', {
           message: error.message,
           status: error.status,
-          code: error.code
+          code: error.code,
+          details: error.details
         });
-
-        // Handle specific error cases
-        if (error.code === 'email_not_confirmed') {
-          return res.status(401).json({ 
-            error: 'Please verify your email address before logging in',
-            details: 'Check your email inbox for a verification link',
-            code: error.code
-          });
-        }
 
         return res.status(401).json({ 
           error: 'Invalid credentials',
@@ -333,6 +330,67 @@ router.post('/google', async (req, res) => {
   } catch (error) {
     console.error('Internal Google login error:', error);
     return res.status(500).json({ error: 'Internal server error: ' + error.message });
+  }
+});
+
+/**
+ * Test Supabase configuration
+ */
+router.get('/test-config', (req, res) => {
+  try {
+    const supabase = getSupabase();
+    const config = {
+      url: process.env.SUPABASE_URL,
+      key: process.env.SUPABASE_ANON_KEY,
+      urlLength: process.env.SUPABASE_URL?.length,
+      keyLength: process.env.SUPABASE_ANON_KEY?.length,
+      urlStartsWith: process.env.SUPABASE_URL?.substring(0, 8),
+      keyStartsWith: process.env.SUPABASE_ANON_KEY?.substring(0, 8)
+    };
+    
+    res.json({
+      message: 'Supabase configuration check',
+      config
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to check Supabase configuration',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * Test environment variables
+ */
+router.get('/test-env', (req, res) => {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    // Check URL format
+    const isUrlValid = supabaseUrl?.startsWith('https://') && supabaseUrl?.includes('.supabase.co');
+    
+    // Check key format
+    const isKeyValid = supabaseKey?.startsWith('eyJ');
+    
+    res.json({
+      url: {
+        value: supabaseUrl,
+        isValid: isUrlValid,
+        length: supabaseUrl?.length
+      },
+      key: {
+        value: supabaseKey,
+        isValid: isKeyValid,
+        length: supabaseKey?.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to check environment variables',
+      message: error.message
+    });
   }
 });
 

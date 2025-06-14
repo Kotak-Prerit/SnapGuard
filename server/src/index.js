@@ -13,6 +13,23 @@ require('dotenv').config({
   path: path.resolve(__dirname, '../.env')
 });
 
+// Validate required environment variables
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars);
+  process.exit(1);
+}
+
+// Log environment configuration (safely)
+console.log('Environment Configuration:', {
+  nodeEnv: process.env.NODE_ENV,
+  supabaseUrl: process.env.SUPABASE_URL ? 'Set' : 'Missing',
+  supabaseKey: process.env.SUPABASE_ANON_KEY ? 'Set' : 'Missing',
+  jwtSecret: process.env.JWT_SECRET ? 'Set' : 'Missing'
+});
+
 // Initialize Express app
 const app = express();
 
@@ -22,6 +39,7 @@ try {
   supabase = getSupabase();
 } catch (error) {
   console.error('Failed to initialize Supabase:', error.message);
+  process.exit(1);
 }
 
 // Configure morgan logging format
