@@ -1,12 +1,28 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Monitor as MonitorIcon, AlertTriangle, AlertCircle, ShieldAlert } from "lucide-react";
+import {
+  Mic,
+  Monitor as MonitorIcon,
+  AlertTriangle,
+  AlertCircle,
+  ShieldAlert,
+  Camera,
+  Settings,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import PageTransition from "@/components/PageTransition";
 import { useToast } from "@/hooks/use-toast";
+import { useMediaPermissionsContext } from "@/contexts/MediaPermissionsContext";
+import MediaPermissionsDialog from "@/components/MediaPermissionsDialog";
 
 type ThreatLevel = "low" | "medium" | "high";
 
@@ -19,7 +35,10 @@ interface Alert {
   transcript?: string;
 }
 
-const levelConfig: Record<ThreatLevel, { icon: React.ElementType; className: string }> = {
+const levelConfig: Record<
+  ThreatLevel,
+  { icon: React.ElementType; className: string }
+> = {
   low: { icon: AlertCircle, className: "bg-success/10 text-success" },
   medium: { icon: AlertTriangle, className: "bg-warning/10 text-warning" },
   high: { icon: ShieldAlert, className: "bg-destructive/10 text-destructive" },
@@ -28,10 +47,48 @@ const levelConfig: Record<ThreatLevel, { icon: React.ElementType; className: str
 const Monitor = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isMonitoring, setIsMonitoring] = useState(true);
+  const {
+    permissions,
+    hasAllPermissions,
+    setShowPermissionsDialog,
+    startStreams,
+    stopStreams,
+    streams,
+    error: permissionsError,
+  } = useMediaPermissionsContext();
+
+  const [isMonitoring, setIsMonitoring] = useState(false);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [micActive, setMicActive] = useState(true);
-  const [screenActive, setScreenActive] = useState(true);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+
+  // Start monitoring when permissions are available
+  useEffect(() => {
+    if (hasAllPermissions && !isMonitoring) {
+      startMonitoring();
+    }
+  }, [hasAllPermissions]);
+
+  const startMonitoring = async () => {
+    if (!hasAllPermissions) {
+      setShowPermissionsDialog(true);
+      return;
+    }
+
+    const success = await startStreams();
+    if (success) {
+      setIsMonitoring(true);
+      toast({
+        title: "Monitoring Started",
+        description: "SnapGuard is now actively monitoring for threats.",
+      });
+    } else {
+      toast({
+        title: "Failed to Start Monitoring",
+        description: "Unable to access camera and microphone.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Simulate receiving alerts
   useEffect(() => {
@@ -64,7 +121,9 @@ const Monitor = () => {
       if (Math.random() > 0.7) {
         const typeIndex = Math.floor(Math.random() * 2);
         const selectedType = alertTypes[typeIndex];
-        const descIndex = Math.floor(Math.random() * selectedType.descriptions.length);
+        const descIndex = Math.floor(
+          Math.random() * selectedType.descriptions.length
+        );
         const levelIndex = Math.floor(Math.random() * levels.length);
 
         const newAlert: Alert = {
@@ -73,7 +132,10 @@ const Monitor = () => {
           type: selectedType.type as "microphone" | "screen",
           description: selectedType.descriptions[descIndex],
           level: levels[levelIndex],
-          transcript: selectedType.type === "microphone" ? "Lorem ipsum dolor sit amet, consectetur adipiscing elit." : undefined,
+          transcript:
+            selectedType.type === "microphone"
+              ? "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+              : undefined,
         };
 
         setAlerts((prev) => [newAlert, ...prev].slice(0, 50));
@@ -99,14 +161,15 @@ const Monitor = () => {
 
   const stopMonitoring = () => {
     setIsMonitoring(false);
+    stopStreams();
     toast({
       title: "Monitoring Stopped",
       description: "Threat detection has been disabled",
     });
-    
+
     // Store the alerts in session storage for the summary page
     sessionStorage.setItem("threatAlerts", JSON.stringify(alerts));
-    
+
     // Navigate to summary page
     setTimeout(() => {
       navigate("/summary");
@@ -123,55 +186,130 @@ const Monitor = () => {
     <PageTransition>
       <div className="space-y-8">
         <div className="flex flex-col space-y-4">
-          <h1 className="text-3xl font-bold tracking-tight">Threat Monitoring</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Threat Monitoring
+          </h1>
           <p className="text-muted-foreground">
-            Real-time analysis of microphone and screen activity for potential threats.
+            Real-time analysis of microphone and screen activity for potential
+            threats.
           </p>
         </div>
 
         {/* Status Cards */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className={micActive ? "border-success/50 glow" : "border-destructive/50"}>
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Microphone Status */}
+          <Card
+            className={
+              permissions.microphone === "granted" && streams.microphone
+                ? "border-success/50 glow"
+                : "border-destructive/50"
+            }
+          >
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Microphone Monitoring</CardTitle>
-              <CardDescription>
-                Analyzing audio for suspicious patterns and keywords
-              </CardDescription>
+              <CardTitle className="text-lg font-medium">Microphone</CardTitle>
+              <CardDescription>Audio threat detection</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Mic className="h-5 w-5 text-primary" />
                   <span className="font-medium text-sm">
-                    {micActive ? "Active" : "Inactive"}
+                    {permissions.microphone === "granted"
+                      ? streams.microphone
+                        ? "Active"
+                        : "Ready"
+                      : permissions.microphone === "denied"
+                      ? "Denied"
+                      : "Pending"}
                   </span>
                 </div>
-                {micActive && (
-                  <div className="relative h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping-slow rounded-full bg-success opacity-75"></span>
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-success"></span>
-                  </div>
-                )}
+                <Badge
+                  variant={
+                    permissions.microphone === "granted"
+                      ? streams.microphone
+                        ? "default"
+                        : "secondary"
+                      : permissions.microphone === "denied"
+                      ? "destructive"
+                      : "outline"
+                  }
+                >
+                  {permissions.microphone === "granted"
+                    ? "✓"
+                    : permissions.microphone === "denied"
+                    ? "✗"
+                    : "?"}
+                </Badge>
               </div>
             </CardContent>
           </Card>
 
-          <Card className={screenActive ? "border-success/50 glow" : "border-destructive/50"}>
+          {/* Camera Status */}
+          <Card
+            className={
+              permissions.camera === "granted" && streams.camera
+                ? "border-success/50 glow"
+                : "border-destructive/50"
+            }
+          >
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Screen Monitoring</CardTitle>
-              <CardDescription>
-                Scanning screen content for security threats
-              </CardDescription>
+              <CardTitle className="text-lg font-medium">Camera</CardTitle>
+              <CardDescription>Visual threat monitoring</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Camera className="h-5 w-5 text-primary" />
+                  <span className="font-medium text-sm">
+                    {permissions.camera === "granted"
+                      ? streams.camera
+                        ? "Active"
+                        : "Ready"
+                      : permissions.camera === "denied"
+                      ? "Denied"
+                      : "Pending"}
+                  </span>
+                </div>
+                <Badge
+                  variant={
+                    permissions.camera === "granted"
+                      ? streams.camera
+                        ? "default"
+                        : "secondary"
+                      : permissions.camera === "denied"
+                      ? "destructive"
+                      : "outline"
+                  }
+                >
+                  {permissions.camera === "granted"
+                    ? "✓"
+                    : permissions.camera === "denied"
+                    ? "✗"
+                    : "?"}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Overall Status */}
+          <Card
+            className={isMonitoring ? "border-success/50 glow" : "border-muted"}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium">
+                Monitoring Status
+              </CardTitle>
+              <CardDescription>Real-time protection</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MonitorIcon className="h-5 w-5 text-primary" />
                   <span className="font-medium text-sm">
-                    {screenActive ? "Active" : "Inactive"}
+                    {isMonitoring ? "Active" : "Inactive"}
                   </span>
                 </div>
-                {screenActive && (
+                {isMonitoring && (
                   <div className="relative h-3 w-3">
                     <span className="absolute inline-flex h-full w-full animate-ping-slow rounded-full bg-success opacity-75"></span>
                     <span className="relative inline-flex h-3 w-3 rounded-full bg-success"></span>
@@ -182,12 +320,57 @@ const Monitor = () => {
           </Card>
         </div>
 
+        {/* Control Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {!hasAllPermissions && (
+            <Button
+              onClick={() => setShowPermissionsDialog(true)}
+              className="flex-1"
+              variant="outline"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Grant Permissions
+            </Button>
+          )}
+
+          {hasAllPermissions && !isMonitoring && (
+            <Button onClick={startMonitoring} className="flex-1">
+              Start Monitoring
+            </Button>
+          )}
+
+          {isMonitoring && (
+            <Button
+              onClick={stopMonitoring}
+              variant="destructive"
+              className="flex-1"
+            >
+              Stop Monitoring
+            </Button>
+          )}
+        </div>
+
+        {permissionsError && (
+          <Card className="border-destructive/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="font-medium">Permission Error</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                {permissionsError}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Alerts Feed */}
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-bold tracking-tight">Live Alerts</h2>
             <div className="text-sm text-muted-foreground">
-              {alerts.length} {alerts.length === 1 ? "alert" : "alerts"} detected
+              {alerts.length} {alerts.length === 1 ? "alert" : "alerts"}{" "}
+              detected
             </div>
           </div>
 
@@ -210,7 +393,9 @@ const Monitor = () => {
                     >
                       <CardContent className="p-0">
                         <div className="flex items-start gap-4 p-4">
-                          <div className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${className}`}>
+                          <div
+                            className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full ${className}`}
+                          >
                             <Icon className="h-4 w-4" />
                           </div>
                           <div className="flex-1 space-y-1">
@@ -230,10 +415,15 @@ const Monitor = () => {
                                     : "bg-success"
                                 }`}
                               />
-                              <span className="capitalize">{alert.level} Risk</span>
+                              <span className="capitalize">
+                                {alert.level} Risk
+                              </span>
                               <span className="mx-2">•</span>
                               <span>
-                                {alert.type === "microphone" ? "Microphone" : "Screen"} Alert
+                                {alert.type === "microphone"
+                                  ? "Microphone"
+                                  : "Screen"}{" "}
+                                Alert
                               </span>
                             </div>
                           </div>
@@ -256,19 +446,16 @@ const Monitor = () => {
             )}
           </div>
         </div>
-
-        {/* Stop Monitoring Button */}
-        <div className="flex justify-center pt-4">
-          <Button
-            size="lg"
-            variant="destructive"
-            className="danger-glow w-full sm:w-auto"
-            onClick={stopMonitoring}
-          >
-            Stop Monitoring
-          </Button>
-        </div>
       </div>
+
+      <MediaPermissionsDialog
+        isOpen={showPermissionsModal}
+        onClose={() => setShowPermissionsModal(false)}
+        onPermissionsGranted={() => {
+          setShowPermissionsModal(false);
+          startMonitoring();
+        }}
+      />
     </PageTransition>
   );
 };

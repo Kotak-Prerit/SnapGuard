@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,14 +11,18 @@ import ThreatDetail from "./pages/ThreatDetail";
 import SessionSummary from "./pages/SessionSummary";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
+import { MediaPermissionsProvider } from "./contexts/MediaPermissionsContext";
+import MediaPermissionsDialog from "./components/MediaPermissionsDialog";
+import { useMediaPermissionsContext } from "./contexts/MediaPermissionsContext";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+const AppContent = () => {
+  const { showPermissionsDialog, setShowPermissionsDialog, dismissDialog } =
+    useMediaPermissionsContext();
+
+  return (
+    <>
       <BrowserRouter>
         <Layout>
           <AnimatePresence mode="wait">
@@ -33,6 +36,26 @@ const App = () => (
           </AnimatePresence>
         </Layout>
       </BrowserRouter>
+
+      <MediaPermissionsDialog
+        isOpen={showPermissionsDialog}
+        onClose={dismissDialog}
+        onPermissionsGranted={() => {
+          setShowPermissionsDialog(false);
+        }}
+      />
+    </>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <MediaPermissionsProvider>
+        <AppContent />
+      </MediaPermissionsProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

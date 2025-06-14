@@ -3,15 +3,25 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PageTransition from "@/components/PageTransition";
-import { Shield, Bot, Cpu, Activity, EyeOff, Microscope, ChevronRight, Sparkles } from "lucide-react";
+import { useMediaPermissionsContext } from "@/contexts/MediaPermissionsContext";
+import {
+  Shield,
+  Bot,
+  Cpu,
+  Activity,
+  EyeOff,
+  Microscope,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react";
 
-const FeatureCard = ({ 
-  icon: Icon, 
-  title, 
-  description 
-}: { 
-  icon: React.ElementType; 
-  title: string; 
+const FeatureCard = ({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType;
+  title: string;
   description: string;
 }) => (
   <motion.div
@@ -35,6 +45,16 @@ const FeatureCard = ({
 
 const Index = () => {
   const navigate = useNavigate();
+  const { hasAllPermissions, setShowPermissionsDialog } =
+    useMediaPermissionsContext();
+
+  const handleStartMonitoring = () => {
+    if (hasAllPermissions) {
+      navigate("/monitor");
+    } else {
+      setShowPermissionsDialog(true);
+    }
+  };
 
   const fadeInUpVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -51,11 +71,11 @@ const Index = () => {
   return (
     <PageTransition>
       {/* Hero Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 hero-bg">
         <div className="flex flex-col items-center text-center relative">
           {/* Gradient orb */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] opacity-50 pointer-events-none" />
-          
+
           <motion.div
             custom={0}
             initial="hidden"
@@ -66,14 +86,14 @@ const Index = () => {
             <div className="flex items-center justify-center mb-6">
               <div className="relative">
                 <motion.div
-                  animate={{ 
+                  animate={{
                     scale: [1, 1.05, 1],
-                    opacity: [0.8, 1, 0.8]
+                    opacity: [0.8, 1, 0.8],
                   }}
-                  transition={{ 
-                    repeat: Infinity, 
+                  transition={{
+                    repeat: Infinity,
                     duration: 3,
-                    ease: "easeInOut"
+                    ease: "easeInOut",
                   }}
                   className="absolute inset-0 rounded-full bg-primary opacity-20 blur-lg"
                 />
@@ -92,7 +112,7 @@ const Index = () => {
               <span className="text-sm">AI-Powered Protection</span>
             </div>
           </motion.div>
-          
+
           <motion.h1
             custom={1}
             initial="hidden"
@@ -106,7 +126,7 @@ const Index = () => {
             </span>{" "}
             Assistant
           </motion.h1>
-          
+
           <motion.p
             custom={2}
             initial="hidden"
@@ -114,10 +134,10 @@ const Index = () => {
             variants={fadeInUpVariants}
             className="mb-10 max-w-[600px] text-muted-foreground text-lg md:text-xl"
           >
-            Protect your digital conversations and screen activity with advanced AI-powered
-            threat detection and real-time monitoring.
+            Protect your digital conversations and screen activity with advanced
+            AI-powered threat detection and real-time monitoring.
           </motion.p>
-          
+
           <motion.div
             custom={3}
             initial="hidden"
@@ -125,16 +145,16 @@ const Index = () => {
             variants={fadeInUpVariants}
             className="flex flex-col sm:flex-row gap-4 items-center justify-center"
           >
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={() => navigate("/monitor")}
               className="glow font-medium text-base h-12 px-6"
             >
               Start Monitoring
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="lg"
               onClick={() => navigate("/summary")}
               className="font-medium text-base h-12 px-6"
@@ -148,7 +168,7 @@ const Index = () => {
       {/* Features Section */}
       <section className="py-20 md:py-32 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] opacity-50 pointer-events-none" />
-        
+
         <div className="mb-16 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -160,7 +180,7 @@ const Index = () => {
             <Bot className="h-4 w-4" />
             <span className="text-sm font-medium">Advanced Features</span>
           </motion.div>
-          
+
           <motion.h2
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -170,7 +190,7 @@ const Index = () => {
           >
             How SnapGuard Protects You
           </motion.h2>
-          
+
           <motion.p
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -178,11 +198,11 @@ const Index = () => {
             viewport={{ once: true }}
             className="mx-auto max-w-[600px] text-muted-foreground text-lg"
           >
-            Our system uses cutting-edge AI to identify potential threats and vulnerabilities
-            in real-time, keeping your digital life secure.
+            Our system uses cutting-edge AI to identify potential threats and
+            vulnerabilities in real-time, keeping your digital life secure.
           </motion.p>
         </div>
-        
+
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
           <FeatureCard
             icon={Activity}
@@ -229,14 +249,17 @@ const Index = () => {
           {/* Background gradient elements */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-[60px] opacity-60" />
           <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-primary/10 rounded-full blur-[60px] opacity-40" />
-          
-          <h2 className="mb-4 text-2xl md:text-3xl font-bold relative z-10">Ready to Protect Your Digital Space?</h2>
+
+          <h2 className="mb-4 text-2xl md:text-3xl font-bold relative z-10">
+            Ready to Protect Your Digital Space?
+          </h2>
           <p className="mx-auto mb-8 max-w-[600px] text-muted-foreground text-lg relative z-10">
-            Start monitoring now and get real-time protection against digital threats with our advanced AI system.
+            Start monitoring now and get real-time protection against digital
+            threats with our advanced AI system.
           </p>
-          <Button 
-            size="lg" 
-            onClick={() => navigate("/monitor")}
+          <Button
+            size="lg"
+            onClick={handleStartMonitoring}
             className="glow font-medium text-base h-12 px-8 relative z-10"
           >
             Start Monitoring
