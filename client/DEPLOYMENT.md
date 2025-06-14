@@ -48,9 +48,9 @@
 Set these environment variables in your Vercel dashboard:
 
 ```
-VITE_SUPABASE_URL=https://fjcvpcunhxsxzhgsndoo.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqY3ZwY3VuaHhzeHpoZ3NuZG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NzIwMjUsImV4cCI6MjA2NTQ0ODAyNX0.7i0S3YXLxOOjjkRnDDolL9l4zPlNf-T3-zplZ6kt-Bc
-VITE_GROQ_API=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
+VITE_SUPABASE_URL=***************
+VITE_SUPABASE_ANON_********************************
+VITE_GROQ_API=************************************
 ```
 
 ## 🔄 API Configuration
